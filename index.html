@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Envision Campus Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #003087;
+  --blue-dark: #001852;
+  --navy: #002855;
+  --green: #78BE21;
+  --bright-blue: #41B6E6;
+  --goldenrod: #FFCF00;
+  --terracotta: #DC4405;
+  --text-light: #f0f4ff;
+  --text-muted: rgba(240,244,255,0.55);
+  --bg-body: #000d2e;
+  --surface: rgba(0,24,82,0.62);
+  --border-dark: rgba(255,255,255,0.10);
+}
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg-body);
+  color: var(--text-light);
+  -webkit-font-smoothing: antialiased;
+}
+#scene-container { position: fixed; inset: 0; }
+#scene-container canvas { display: block; }
+
+/* Fixed nav */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+  padding: 0.8rem 1.25rem;
+  background: rgba(0,13,46,0.78);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-dark);
+}
+.logo { font-weight: 800; font-size: 0.8rem; letter-spacing: 0.16em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+.logo span { color: var(--green); }
+.topbar-group { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+.chip-btn {
+  background: transparent; color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.22);
+  padding: 0.42rem 0.85rem; font-family: 'Montserrat', sans-serif;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  border-radius: 2px; cursor: pointer; transition: border-color 0.18s, color 0.18s, background 0.18s;
+}
+.chip-btn:hover, .chip-btn:focus-visible { border-color: rgba(255,255,255,0.55); color: #fff; outline: none; }
+.chip-btn.active { background: var(--green); border-color: var(--green); color: var(--blue-dark); }
+.chip-btn[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--blue-dark); }
+
+/* Intro selector */
+#intro {
+  position: fixed; inset: 0; z-index: 60;
+  background:
+    radial-gradient(ellipse at 75% 8%, rgba(65,182,230,0.14), transparent 55%),
+    linear-gradient(160deg, #001852 0%, #002855 45%, #000d2e 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 4.5rem 1.25rem 2rem; overflow-y: auto; text-align: center;
+  transition: opacity 0.6s ease, visibility 0.6s;
+}
+#intro.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.intro-eyebrow {
+  display: inline-flex; align-items: center; gap: 0.75rem;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--green); margin-bottom: 1.1rem;
+}
+.intro-eyebrow::before, .intro-eyebrow::after { content: ''; display: block; width: 24px; height: 1px; background: var(--green); opacity: 0.6; }
+#intro h1 { font-size: clamp(1.9rem, 6vw, 3.6rem); font-weight: 800; line-height: 1.06; letter-spacing: -0.02em; margin-bottom: 0.9rem; }
+#intro h1 em { font-style: normal; color: var(--green); }
+.intro-sub { font-size: 0.86rem; color: var(--text-muted); line-height: 1.7; max-width: 540px; margin: 0 auto 2.2rem; }
+.campus-cards { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 860px; }
+.campus-card {
+  flex: 1 1 300px; max-width: 410px; text-align: left;
+  background: var(--surface); border: 1px solid var(--border-dark); border-radius: 3px;
+  padding: 1.6rem 1.5rem 1.5rem; cursor: pointer;
+  font-family: 'Montserrat', sans-serif; color: var(--text-light);
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.campus-card:hover, .campus-card:focus-visible { border-color: rgba(120,190,33,0.65); transform: translateY(-3px); box-shadow: 0 18px 44px rgba(0,0,0,0.4); outline: none; }
+.cc-eyebrow { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin-bottom: 0.55rem; }
+.cc-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.015em; margin-bottom: 0.5rem; }
+.cc-body { font-size: 0.76rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 1rem; }
+.cc-stats { display: flex; gap: 0.9rem; flex-wrap: wrap; border-top: 1px solid var(--border-dark); padding-top: 0.85rem; }
+.cc-stat b { display: block; font-size: 0.86rem; font-weight: 800; color: #fff; }
+.cc-stat i { font-style: normal; font-size: 0.56rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.cc-go { display: inline-block; margin-top: 1.1rem; background: var(--green); color: var(--blue-dark); padding: 0.55rem 1.3rem; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 2px; }
+.intro-foot { margin-top: 2.2rem; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.3); font-weight: 600; line-height: 2; }
+
+/* Locations sidebar */
+#sidebar {
+  position: fixed; top: 56px; bottom: 0; left: 0; z-index: 35; width: 288px; max-width: 84vw;
+  background: rgba(0,13,46,0.86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border-right: 1px solid var(--border-dark);
+  transform: translateX(-100%); transition: transform 0.3s ease;
+  display: flex; flex-direction: column;
+}
+#sidebar.open { transform: translateX(0); }
+.sidebar-head { padding: 1.1rem 1.2rem 0.7rem; }
+.sidebar-head .cc-eyebrow { margin-bottom: 0.2rem; }
+.sidebar-head h2 { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+#hotspot-list { list-style: none; overflow-y: auto; padding: 0.4rem 0.8rem 1.2rem; flex: 1; }
+#hotspot-list li { margin-bottom: 0.35rem; }
+.hs-btn {
+  width: 100%; text-align: left; background: transparent; border: 1px solid transparent;
+  border-radius: 2px; padding: 0.6rem 0.7rem; cursor: pointer;
+  font-family: 'Montserrat', sans-serif; color: rgba(255,255,255,0.72);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.hs-btn:hover, .hs-btn:focus-visible { background: rgba(0,48,135,0.35); border-color: rgba(255,255,255,0.14); color: #fff; outline: none; }
+.hs-btn.active { border-color: rgba(120,190,33,0.6); background: rgba(120,190,33,0.1); color: #fff; }
+.hs-btn .n { display: inline-block; width: 1.25rem; font-size: 0.62rem; font-weight: 800; color: var(--green); }
+.hs-btn .t { font-size: 0.74rem; font-weight: 600; }
+
+/* Info panel */
+#info-panel {
+  position: fixed; z-index: 34; left: 1rem; right: 1rem; bottom: 1rem;
+  max-width: 460px; margin: 0 auto;
+  background: rgba(0,13,46,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-dark); border-top: 2px solid var(--green); border-radius: 3px;
+  padding: 1.15rem 1.25rem 1.1rem;
+  transform: translateY(calc(100% + 2rem)); transition: transform 0.35s ease;
+}
+@media (min-width: 720px) { #info-panel { left: 1.25rem; right: auto; margin: 0; width: 430px; } }
+#info-panel.open { transform: translateY(0); }
+.ip-eyebrow { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.6rem; }
+.ip-eyebrow::before { content: ''; display: block; width: 18px; height: 1px; background: var(--green); }
+#ip-title { font-size: 1.06rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; margin-bottom: 0.55rem; padding-right: 1.6rem; }
+#ip-body { font-size: 0.76rem; color: var(--text-muted); line-height: 1.68; }
+#ip-stats { display: flex; gap: 0.55rem; flex-wrap: wrap; margin-top: 0.85rem; }
+#ip-stats span {
+  font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #fff; background: rgba(0,48,135,0.5); border: 1px solid rgba(255,255,255,0.12);
+  padding: 0.32rem 0.6rem; border-radius: 2px;
+}
+#ip-close {
+  position: absolute; top: 0.65rem; right: 0.65rem; background: transparent; border: none;
+  color: rgba(255,255,255,0.45); font-size: 1.05rem; cursor: pointer; line-height: 1; padding: 0.25rem;
+}
+#ip-close:hover, #ip-close:focus-visible { color: #fff; outline: none; }
+
+/* Phase legend */
+#phase-legend {
+  position: fixed; z-index: 34; right: 1rem; bottom: 1rem; width: 250px;
+  background: rgba(0,13,46,0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-dark); border-radius: 3px; padding: 1rem 1.1rem;
+  display: none;
+}
+#phase-legend.open { display: block; }
+#phase-legend h3 { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.7rem; }
+.pl-row { display: flex; align-items: baseline; gap: 0.55rem; margin-bottom: 0.5rem; }
+.pl-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; transform: translateY(1px); }
+.pl-row b { font-size: 0.66rem; font-weight: 700; display: block; }
+.pl-row i { font-style: normal; font-size: 0.58rem; color: var(--text-muted); }
+.pl-note { font-size: 0.56rem; color: rgba(255,255,255,0.4); line-height: 1.6; margin-top: 0.55rem; border-top: 1px solid var(--border-dark); padding-top: 0.55rem; }
+
+/* Hints + live region */
+#cam-controls {
+  position: fixed; z-index: 33; right: 0.8rem; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+}
+.cam-row { display: flex; gap: 0.35rem; }
+.cam-btn {
+  width: 40px; height: 40px; border-radius: 3px;
+  background: rgba(0,13,46,0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-dark); color: rgba(255,255,255,0.85);
+  font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+}
+.cam-btn:hover, .cam-btn:focus-visible { border-color: rgba(120,190,33,0.7); background: rgba(0,48,135,0.55); outline: none; }
+#hint {
+  position: fixed; z-index: 30; bottom: 0.6rem; left: 50%; transform: translateX(-50%);
+  font-size: 0.55rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255,255,255,0.32); white-space: nowrap; pointer-events: none;
+  transition: opacity 0.5s;
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+#loading {
+  position: fixed; inset: 0; z-index: 70; background: var(--bg-body);
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1rem;
+  transition: opacity 0.5s, visibility 0.5s;
+}
+#loading.hidden { opacity: 0; visibility: hidden; }
+.load-bar { width: 130px; height: 2px; background: rgba(255,255,255,0.12); overflow: hidden; border-radius: 1px; }
+.load-bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--green); animation: slide 1.1s ease-in-out infinite; }
+@keyframes slide { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+#loading .logo { font-size: 0.72rem; }
+@media (max-width: 640px) {
+  .logo em { display: none; }
+  #topbar { padding: 0.7rem 0.8rem; }
+  .chip-btn { padding: 0.4rem 0.6rem; font-size: 0.56rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading" role="status">
+  <div class="logo">ENVISION<span>.</span></div>
+  <div class="load-bar"></div>
+</div>
+
+<div id="scene-container" aria-hidden="true"></div>
+
+<header id="topbar">
+  <div class="logo">ENVISION<span>.</span> <em style="font-style:normal;font-weight:600;color:rgba(255,255,255,0.4)">CAMPUS EXPLORER</em></div>
+  <div class="topbar-group" role="group" aria-label="Explorer controls">
+    <button class="chip-btn" id="btn-wichita" aria-pressed="false">Wichita</button>
+    <button class="chip-btn" id="btn-dallas" aria-pressed="false">Dallas</button>
+    <button class="chip-btn" id="btn-locations" aria-expanded="false" aria-controls="sidebar">Locations</button>
+    <button class="chip-btn" id="btn-tour" aria-pressed="false">Tour</button>
+    <button class="chip-btn" id="btn-phases" aria-pressed="false" style="display:none">Phases</button>
+    <button class="chip-btn" id="btn-motion" aria-pressed="true" title="Toggle ambient animation">Motion</button>
+  </div>
+</header>
+
+<div id="intro">
+  <div class="intro-eyebrow">Two Campuses. One Mission.</div>
+  <h1>Explore Envision<br>in <em>3D</em></h1>
+  <p class="intro-sub">An interactive look at the places where Envision manufactures, trains, teaches, and serves. Select a campus to begin, then tap the markers to visit each location.</p>
+  <div class="campus-cards">
+    <button class="campus-card" id="card-wichita">
+      <div class="cc-eyebrow">Wichita Campus</div>
+      <div class="cc-title">2301 S Water Street</div>
+      <p class="cc-body">Manufacturing, print, and fulfillment since 2000, now expanding through the S. Water St. Development Project to bring programs and services onto one campus.</p>
+      <div class="cc-stats">
+        <div class="cc-stat"><b>1933</b><i>Founded</i></div>
+        <div class="cc-stat"><b>550+</b><i>Employees</i></div>
+        <div class="cc-stat"><b>2026</b><i>Move-ins</i></div>
+      </div>
+      <span class="cc-go">Enter Campus</span>
+    </button>
+    <button class="campus-card" id="card-dallas">
+      <div class="cc-eyebrow">Dallas Campus</div>
+      <div class="cc-title">1801 Valley View Lane</div>
+      <p class="cc-body">A 210,000 square foot campus in Farmers Branch, opened in 2024, uniting manufacturing, rehabilitation, education, and services under one roof.</p>
+      <div class="cc-stats">
+        <div class="cc-stat"><b>210K</b><i>Sq Ft</i></div>
+        <div class="cc-stat"><b>13.6</b><i>Acres</i></div>
+        <div class="cc-stat"><b>2024</b><i>Opened</i></div>
+      </div>
+      <span class="cc-go">Enter Campus</span>
+    </button>
+  </div>
+  <div class="intro-foot">Drag to orbit &middot; Pinch or scroll to zoom &middot; Fully browsable via the Locations list</div>
+</div>
+
+<nav id="sidebar" aria-label="Campus locations">
+  <div class="sidebar-head">
+    <div class="cc-eyebrow" id="sidebar-campus">Campus</div>
+    <h2>Locations</h2>
+  </div>
+  <ul id="hotspot-list"></ul>
+</nav>
+
+<aside id="info-panel" aria-live="polite">
+  <button id="ip-close" aria-label="Close panel">&#10005;</button>
+  <div class="ip-eyebrow" id="ip-eyebrow">Location</div>
+  <h2 id="ip-title"></h2>
+  <p id="ip-body"></p>
+  <div id="ip-stats"></div>
+</aside>
+
+<aside id="phase-legend" aria-label="Development phases">
+  <h3>S. Water St. Development</h3>
+  <div class="pl-row"><span class="pl-swatch" style="background:#78BE21"></span><div><b>Phase 1</b><i>Move-In Phase I &middot; Sep 30, 2026</i></div></div>
+  <div class="pl-row"><span class="pl-swatch" style="background:#41B6E6"></span><div><b>Phase 2A</b><i>Move-In Phase I &middot; Oct 30, 2026</i></div></div>
+  <div class="pl-row"><span class="pl-swatch" style="background:#FFCF00"></span><div><b>Phase 2B</b><i>Move-In Phase II &middot; Nov 30, 2026</i></div></div>
+  <div class="pl-row"><span class="pl-swatch" style="background:#DC4405"></span><div><b>Phase 3</b><i>Move-In Phase II &middot; Dec 31, 2026</i></div></div>
+  <p class="pl-note">Multi-phase renovation and expansion with design-build partner Hutton, supported by the City of Wichita and Sedgwick County.</p>
+</aside>
+
+<div id="hint">Drag to orbit &middot; Pinch to zoom &middot; Tap a marker once to visit, again to zoom closer</div>
+<div id="cam-controls" role="group" aria-label="Camera controls">
+  <button class="cam-btn" id="cb-up" aria-label="Look from higher above">&#9650;</button>
+  <div class="cam-row">
+    <button class="cam-btn" id="cb-left" aria-label="Orbit left">&#9664;</button>
+    <button class="cam-btn" id="cb-right" aria-label="Orbit right">&#9654;</button>
+  </div>
+  <button class="cam-btn" id="cb-down" aria-label="Look from lower">&#9660;</button>
+  <div class="cam-row">
+    <button class="cam-btn" id="cb-in" aria-label="Zoom in">+</button>
+    <button class="cam-btn" id="cb-out" aria-label="Zoom out">&minus;</button>
+  </div>
+</div>
+<div class="sr-only" role="status" aria-live="polite" id="live-region"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+(function(){
+'use strict';
+if (typeof THREE === 'undefined') {
+  var l = document.getElementById('loading');
+  if (l) l.innerHTML = '<div class="logo">ENVISION<span>.</span></div><p style="font-size:0.7rem;color:rgba(255,255,255,0.5);max-width:280px;text-align:center;line-height:1.7">The 3D engine could not load. Please check your connection and refresh.</p>';
+  return;
+}
+
+/* =========================================================
+   ENVISION CAMPUS EXPLORER 3D
+   Brand: Montserrat, Navy #002855, Blue #003087, Green #78BE21
+   ========================================================= */
+
+var BRAND = {
+  blue: 0x003087, blueDark: 0x001852, navy: 0x002855,
+  green: 0x78BE21, brightBlue: 0x41B6E6, goldenrod: 0xFFCF00,
+  terracotta: 0xDC4405, charcoal: 0x53565A, white: 0xffffff
+};
+
+var container = document.getElementById('scene-container');
+var renderer, scene, camera;
+var clock = new THREE.Clock();
+var motionEnabled = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var raycaster = new THREE.Raycaster();
+var pointerVec = new THREE.Vector2();
+var activeCampusKey = null;
+var campuses = {};
+var allTextSprites = [];
+var tourActive = false, tourIndex = 0, tourTimer = 0;
+
+/* ---------- Renderer / scene ---------- */
+renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfe0ee);
+scene.fog = new THREE.Fog(0xcfe0ee, 220, 620);
+
+camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 1500);
+
+var hemi = new THREE.HemisphereLight(0xdfeaf5, 0x8a9aa8, 0.85);
+scene.add(hemi);
+var sun = new THREE.DirectionalLight(0xfff3dd, 1.15);
+sun.position.set(120, 160, 80);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -180; sun.shadow.camera.right = 180;
+sun.shadow.camera.top = 180; sun.shadow.camera.bottom = -180;
+sun.shadow.camera.far = 500;
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+
+/* ---------- Materials ---------- */
+function mat(color, opts) {
+  var o = opts || {};
+  return new THREE.MeshStandardMaterial(Object.assign({ color: color, roughness: 0.85, metalness: 0.05 }, o));
+}
+var M = {
+  ground: mat(0x9fae8f, { roughness: 1 }),
+  asphalt: mat(0x4c5258, { roughness: 0.95 }),
+  concrete: mat(0xb9bdc1, { roughness: 0.9 }),
+  sidewalk: mat(0xc9ccce, { roughness: 0.9 }),
+  panelLight: mat(0xe8eaec, { roughness: 0.7 }),
+  panelMid: mat(0xd3d7da, { roughness: 0.75 }),
+  navyBand: mat(BRAND.navy, { roughness: 0.55 }),
+  blueGlass: mat(0x2a5f8f, { roughness: 0.15, metalness: 0.55 }),
+  darkGlass: mat(0x16324a, { roughness: 0.2, metalness: 0.5 }),
+  greenAccent: mat(BRAND.green, { roughness: 0.5 }),
+  roof: mat(0x8f969c, { roughness: 0.95 }),
+  dockDoor: mat(0x33475c, { roughness: 0.6, metalness: 0.25 }),
+  dockFrame: mat(0x222c36, { roughness: 0.8 }),
+  trunk: mat(0x6b5138, { roughness: 1 }),
+  leaf1: mat(0x5f8a44, { roughness: 1 }),
+  leaf2: mat(0x4d7a3a, { roughness: 1 }),
+  trailer: mat(0xf2f3f4, { roughness: 0.55 }),
+  cabNavy: mat(BRAND.navy, { roughness: 0.4, metalness: 0.2 }),
+  tire: mat(0x1c1f22, { roughness: 0.95 }),
+  hvac: mat(0xaab2b8, { roughness: 0.8 }),
+  line: new THREE.LineBasicMaterial({ color: 0x24354a, transparent: true, opacity: 0.35 })
+};
+
+function edged(mesh) {
+  var eg = new THREE.EdgesGeometry(mesh.geometry, 24);
+  var lines = new THREE.LineSegments(eg, M.line);
+  mesh.add(lines);
+  return mesh;
+}
+function box(w, h, d, material, x, y, z, shadow) {
+  var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+  m.position.set(x, y, z);
+  if (shadow !== false) { m.castShadow = true; m.receiveShadow = true; }
+  return m;
+}
+
+/* ---------- Text textures (Montserrat, redrawn after fonts load) ---------- */
+var textRedraws = [];
+function makeSignTexture(text, opts) {
+  var o = opts || {};
+  var cw = o.w || 1024, ch = o.h || 256;
+  var canvas = document.createElement('canvas');
+  canvas.width = cw; canvas.height = ch;
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 4;
+  function draw() {
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, cw, ch);
+    if (o.bg) { ctx.fillStyle = o.bg; ctx.fillRect(0, 0, cw, ch); }
+    ctx.fillStyle = o.color || '#ffffff';
+    ctx.font = '800 ' + (o.size || 120) + 'px Montserrat, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (o.line2) {
+      ctx.font = '800 ' + (o.size || 90) + 'px Montserrat, sans-serif';
+      ctx.fillText(text, cw/2, ch*0.34);
+      ctx.font = '700 ' + Math.round((o.size || 90)*0.62) + 'px Montserrat, sans-serif';
+      ctx.fillText(o.line2, cw/2, ch*0.72);
+      tex.needsUpdate = true;
+      return;
+    }
+    if (o.spacing) {
+      var chars = text.split(''); var widths = chars.map(function(c){ return ctx.measureText(c).width; });
+      var total = widths.reduce(function(a,b){return a+b;},0) + o.spacing * (chars.length - 1);
+      var x = cw/2 - total/2;
+      chars.forEach(function(c, i){ ctx.fillText(c, x + widths[i]/2, ch/2 + (o.dy||0)); x += widths[i] + o.spacing; });
+    } else {
+      ctx.fillText(text, cw/2, ch/2 + (o.dy||0));
+    }
+    if (o.underline) {
+      ctx.fillStyle = '#78BE21';
+      ctx.fillRect(cw/2 - (o.ulWidth||160)/2, ch/2 + (o.size||120)*0.52, o.ulWidth||160, 14);
+    }
+    tex.needsUpdate = true;
+  }
+  draw();
+  textRedraws.push(draw);
+  return tex;
+}
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(function(){ textRedraws.forEach(function(fn){ fn(); }); });
+}
+
+function makeLabelSprite(text, sub, colorHex) {
+  var canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 160;
+  var tex = new THREE.CanvasTexture(canvas);
+  function draw() {
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,512,160);
+    ctx.fillStyle = 'rgba(0,13,46,0.85)';
+    roundRect(ctx, 6, 6, 500, 148, 10); ctx.fill();
+    ctx.strokeStyle = colorHex || '#78BE21'; ctx.lineWidth = 4;
+    roundRect(ctx, 6, 6, 500, 148, 10); ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 52px Montserrat, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 256, sub ? 72 : 92);
+    if (sub) {
+      ctx.fillStyle = 'rgba(240,244,255,0.75)';
+      ctx.font = '600 30px Montserrat, sans-serif';
+      ctx.fillText(sub, 256, 118);
+    }
+    tex.needsUpdate = true;
+  }
+  draw(); textRedraws.push(draw);
+  var sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sprite.scale.set(16, 5, 1);
+  sprite.renderOrder = 5;
+  return sprite;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+/* ---------- Hotspot markers ---------- */
+function makeMarkerTexture() {
+  var c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  var ctx = c.getContext('2d');
+  ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,24,82,0.92)'; ctx.fill();
+  ctx.lineWidth = 8; ctx.strokeStyle = '#78BE21'; ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(58, 34, 12, 60); ctx.fillRect(34, 58, 60, 12);
+  var t = new THREE.CanvasTexture(c); return t;
+}
+var markerTexture = makeMarkerTexture();
+
+/* =========================================================
+   SHARED ENVIRONMENT BUILDERS
+   ========================================================= */
+function buildGround(group, size) {
+  var g = new THREE.Mesh(new THREE.PlaneGeometry(size, size), M.ground);
+  g.rotation.x = -Math.PI/2; g.receiveShadow = true;
+  group.add(g);
+}
+function buildRoad(group, w, d, x, z, rotY) {
+  var r = new THREE.Mesh(new THREE.PlaneGeometry(w, d), M.asphalt);
+  r.rotation.x = -Math.PI/2; r.rotation.z = rotY || 0;
+  r.position.set(x, 0.02, z); r.receiveShadow = true;
+  group.add(r);
+  return r;
+}
+function buildLot(group, w, d, x, z) {
+  var r = new THREE.Mesh(new THREE.PlaneGeometry(w, d), M.asphalt);
+  r.rotation.x = -Math.PI/2; r.position.set(x, 0.02, z); r.receiveShadow = true;
+  group.add(r);
+  // parking stripes
+  var stripeMat = new THREE.MeshBasicMaterial({ color: 0xdfe3e6 });
+  var rows = Math.max(1, Math.floor(d / 14));
+  for (var row = 0; row < rows; row++) {
+    var zLine = z - d/2 + 7 + row * 14;
+    for (var i = 0; i < Math.floor(w / 3.4); i++) {
+      var s = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 5), stripeMat);
+      s.rotation.x = -Math.PI/2;
+      s.position.set(x - w/2 + 2 + i * 3.4, 0.03, zLine);
+      group.add(s);
+    }
+  }
+}
+function buildSidewalk(group, w, d, x, z) {
+  var s = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, d), M.sidewalk);
+  s.position.set(x, 0.09, z); s.receiveShadow = true;
+  group.add(s);
+}
+function buildTree(group, x, z, s) {
+  s = s || 1;
+  var t = new THREE.Group();
+  var trunk = box(0.5*s, 2.2*s, 0.5*s, M.trunk, 0, 1.1*s, 0);
+  var f1 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9*s, 0), M.leaf1);
+  f1.position.y = 3.1*s; f1.castShadow = true;
+  var f2 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3*s, 0), M.leaf2);
+  f2.position.set(0.7*s, 4.0*s, 0.3*s); f2.castShadow = true;
+  t.add(trunk, f1, f2);
+  t.position.set(x, 0, z);
+  t.rotation.y = Math.random() * Math.PI * 2;
+  group.add(t);
+}
+function buildCar(group, x, z, rotY) {
+  var palette = [0xd8dbde, 0x9aa3ab, BRAND.navy, 0x6d7a85, 0xc0c7cc, 0x30425a];
+  var color = palette[Math.floor(Math.random()*palette.length)];
+  var car = new THREE.Group();
+  var body = edged(box(4.1, 1.1, 1.9, mat(color, { roughness: 0.45, metalness: 0.3 }), 0, 0.78, 0));
+  var top = edged(box(2.2, 0.85, 1.7, M.darkGlass, -0.15, 1.72, 0));
+  car.add(body, top);
+  [[-1.35, 0.75],[1.35, 0.75],[-1.35, -0.75],[1.35, -0.75]].forEach(function(p){
+    var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 12), M.tire);
+    wheel.rotation.x = Math.PI/2;
+    wheel.position.set(p[0], 0.42, p[1]);
+    car.add(wheel);
+  });
+  car.position.set(x, 0, z); car.rotation.y = rotY || 0;
+  group.add(car);
+}
+function buildHVAC(group, x, y, z) {
+  group.add(edged(box(3.4, 1.5, 2.4, M.hvac, x, y + 0.75, z)));
+}
+function buildLightPole(group, x, z) {
+  var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 7.5, 8), mat(0x3a4148, { roughness: 0.5, metalness: 0.4 }));
+  pole.position.set(x, 3.75, z); pole.castShadow = true;
+  var head = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 0.6), mat(0xe8eef2, { emissive: 0x777f88 }));
+  head.position.set(x + 0.5, 7.5, z);
+  group.add(pole, head);
+}
+
+/* ---------- Truck ---------- */
+function buildTruck() {
+  var truck = new THREE.Group();
+  var cab = edged(box(2.6, 2.5, 2.5, M.cabNavy, 3.7, 1.85, 0));
+  var wind = box(0.1, 0.9, 2.1, M.darkGlass, 5.05, 2.35, 0);
+  var trailer = edged(box(8.6, 3.1, 2.55, M.trailer, -1.6, 2.35, 0));
+  // trailer branding
+  var signTex = makeSignTexture('ENVISION', { w: 1024, h: 256, size: 128, color: '#002855', spacing: 10 });
+  var sign1 = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 1.9), new THREE.MeshBasicMaterial({ map: signTex, transparent: true }));
+  sign1.position.set(-1.6, 2.45, 1.29); truck.add(sign1);
+  var sign2 = sign1.clone(); sign2.position.z = -1.29; sign2.rotation.y = Math.PI; truck.add(sign2);
+  truck.add(cab, wind, trailer);
+  [[4.2, 0],[2.2, 0],[-3.4, 0],[-4.6, 0]].forEach(function(p){
+    [1.05, -1.05].forEach(function(zz){
+      var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.4, 12), M.tire);
+      wheel.rotation.x = Math.PI/2;
+      wheel.position.set(p[0], 0.55, zz);
+      truck.add(wheel);
+    });
+  });
+  return truck;
+}
+
+/* ---------- People ---------- */
+var skinTones = [0x8d5524, 0xc68642, 0xe0ac69, 0xf1c27d, 0x6b4226];
+var shirtTones = [BRAND.green, BRAND.brightBlue, 0xe8eaec, BRAND.goldenrod, BRAND.navy, 0xd3d7da];
+function buildPerson() {
+  var p = new THREE.Group();
+  var shirt = shirtTones[Math.floor(Math.random()*shirtTones.length)];
+  var skin = skinTones[Math.floor(Math.random()*skinTones.length)];
+  var legs = box(0.42, 0.85, 0.3, mat(0x2e3742), 0, 0.43, 0);
+  var torso = box(0.55, 0.8, 0.36, mat(shirt, { roughness: 0.8 }), 0, 1.28, 0);
+  var head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 10), mat(skin, { roughness: 0.9 }));
+  head.position.y = 1.95; head.castShadow = true;
+  p.add(legs, torso, head);
+  if (Math.random() < 0.35) {
+    // white cane detail, held forward
+    var cane = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.25, 6), mat(0xffffff, { roughness: 0.4 }));
+    cane.position.set(0.32, 0.7, 0.32); cane.rotation.x = 0.5; cane.rotation.z = -0.15;
+    p.add(cane);
+  }
+  return p;
+}
+
+/* ---------- Path runner (trucks + people) ---------- */
+function PathRunner(object, points, speed, opts) {
+  this.obj = object;
+  this.pts = points.map(function(p){ return new THREE.Vector3(p[0], p[1]||0, p[2]); });
+  this.speed = speed;
+  this.opts = opts || {};
+  this.seg = 0; this.t = 0; this.wait = 0;
+  this.segLens = [];
+  for (var i = 0; i < this.pts.length; i++) {
+    var a = this.pts[i], b = this.pts[(i+1)%this.pts.length];
+    this.segLens.push(a.distanceTo(b));
+  }
+  if (this.opts.offset) {
+    var d = this.opts.offset;
+    while (d > 0) { if (d > this.segLens[this.seg]) { d -= this.segLens[this.seg]; this.seg = (this.seg+1)%this.pts.length; } else { this.t = d / this.segLens[this.seg]; d = 0; } }
+  }
+  this.place(0);
+}
+PathRunner.prototype.place = function(dt) {
+  var a = this.pts[this.seg], b = this.pts[(this.seg+1)%this.pts.length];
+  var pos = new THREE.Vector3().lerpVectors(a, b, this.t);
+  this.obj.position.copy(pos);
+  var dir = new THREE.Vector3().subVectors(b, a);
+  if (dir.lengthSq() > 0.0001) {
+    var target = Math.atan2(dir.x, dir.z) + (this.opts.headingOffset || 0);
+    // smooth heading
+    var cur = this.obj.rotation.y;
+    var diff = target - cur;
+    while (diff > Math.PI) diff -= Math.PI*2;
+    while (diff < -Math.PI) diff += Math.PI*2;
+    this.obj.rotation.y = cur + diff * Math.min(1, dt * 6 + (dt === 0 ? 1 : 0));
+  }
+  if (this.opts.bob) this.obj.position.y += Math.abs(Math.sin(performance.now()*0.008 + (this.opts.seed||0))) * 0.06;
+};
+PathRunner.prototype.update = function(dt) {
+  if (this.wait > 0) {
+    this.wait -= dt;
+    if (this.opts.onWaitTick) this.opts.onWaitTick(this);
+    return;
+  }
+  var len = this.segLens[this.seg] || 0.001;
+  this.t += (this.speed * dt) / len;
+  if (this.t >= 1) {
+    this.t = 0;
+    this.seg = (this.seg + 1) % this.pts.length;
+    var waits = this.opts.waits || {};
+    if (waits[this.seg] !== undefined) {
+      this.wait = waits[this.seg];
+      if (this.opts.onArrive) this.opts.onArrive(this.seg, this);
+    }
+  }
+  this.place(dt);
+};
+
+/* ---------- Dock module ---------- */
+function buildDockBay(parent, x, y, z, rotY, doorRefArray) {
+  var g = new THREE.Group();
+  var frame = edged(box(5.2, 4.6, 0.5, M.dockFrame, 0, 2.3, 0));
+  var door = box(4.2, 3.6, 0.25, M.dockDoor, 0, 2.0, 0.16);
+  door.userData.baseY = 2.0; door.userData.openAmt = 0; door.userData.targetOpen = 0;
+  var bumperL = box(0.5, 0.8, 0.6, mat(0x14181c), -1.9, 0.6, 0.4);
+  var bumperR = box(0.5, 0.8, 0.6, mat(0x14181c), 1.9, 0.6, 0.4);
+  g.add(frame, door, bumperL, bumperR);
+  g.position.set(x, y, z); g.rotation.y = rotY || 0;
+  parent.add(g);
+  if (doorRefArray) doorRefArray.push(door);
+  return g;
+}
+function updateDoors(doors, dt) {
+  doors.forEach(function(d){
+    d.userData.openAmt += (d.userData.targetOpen - d.userData.openAmt) * Math.min(1, dt*3);
+    var amt = d.userData.openAmt;
+    d.scale.y = 1 - amt * 0.9;
+    d.position.y = d.userData.baseY + amt * 1.55;
+  });
+}
+/* =========================================================
+   WICHITA CAMPUS, 2301 S WATER STREET
+   ========================================================= */
+function buildWichita() {
+  var g = new THREE.Group();
+  g.visible = false;
+  scene.add(g);
+  var doors = [];
+  var trucks = [];
+  var people = [];
+
+  buildGround(g, 700);
+
+  /* --- S Water St along the front --- */
+  buildRoad(g, 380, 12, 0, 52);
+  var dashMat = new THREE.MeshBasicMaterial({ color: 0xe6d75a });
+  for (var i = -180; i < 180; i += 12) {
+    var dash = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.28), dashMat);
+    dash.rotation.x = -Math.PI/2; dash.position.set(i, 0.03, 52);
+    g.add(dash);
+  }
+
+  /* --- Materials for this campus --- */
+  var whiteMetal = mat(0xf1f2f3, { roughness: 0.55, metalness: 0.15 });
+  var whitePanel = mat(0xe6e8ea, { roughness: 0.65 });
+  var bronze = mat(0x4a3a2d, { roughness: 0.8 });
+  var blockWall = mat(0xb5aa98, { roughness: 0.95 });
+  var pillarBrick = mat(0xa89a86, { roughness: 0.95 });
+  var picket = mat(0x1c2126, { roughness: 0.6, metalness: 0.3 });
+  var awning = mat(0x9aa2a8, { roughness: 0.7 });
+
+  /* --- Main plant: white metal building, docks facing the street --- */
+  var plant = new THREE.Group();
+  var mainBody = edged(box(94, 10, 48, whiteMetal, -3, 5, -6));
+  plant.add(mainBody);
+  plant.add(box(94.6, 0.5, 48.6, M.roof, -3, 10.2, -6));
+  // high-bay section behind the right end, taller white mass
+  var highBay = edged(box(36, 14.5, 40, whitePanel, 26, 7.25, -10));
+  plant.add(highBay);
+  plant.add(box(36.6, 0.5, 40.6, M.roof, 26, 14.5, -10));
+  // two-story office block, front-right, dark ribbon windows
+  var office = new THREE.Group();
+  office.add(edged(box(30, 8.5, 12, whitePanel, 0, 4.25, 0)));
+  office.add(box(30.6, 0.4, 12.6, M.roof, 0, 8.6, 0));
+  office.add(box(27, 1.8, 0.3, M.darkGlass, 0, 2.8, 6.2));
+  office.add(box(27, 1.8, 0.3, M.darkGlass, 0, 6.2, 6.2));
+  office.add(box(7, 3.4, 0.4, M.darkGlass, -6, 1.7, 6.35));
+  office.add(box(9, 0.35, 3.2, M.greenAccent, -6, 3.6, 7.6));
+  office.position.set(29, 0, 24);
+  plant.add(office);
+  // rooftop units
+  buildHVAC(plant, -30, 10.45, -10); buildHVAC(plant, -12, 10.45, 2);
+  buildHVAC(plant, 2, 10.45, -16); buildHVAC(plant, 26, 15.0, -14);
+  buildHVAC(plant, 32, 15.0, 0);
+  g.add(plant);
+
+  // Envision Industries lettering high on the high-bay, facing the street
+  var indTex = makeSignTexture('ENVISION', { w: 1200, h: 300, size: 96, color: '#002855', line2: 'INDUSTRIES' });
+  var indSign = new THREE.Mesh(new THREE.PlaneGeometry(18, 4.5), new THREE.MeshBasicMaterial({ map: indTex, transparent: true }));
+  indSign.position.set(26, 12.2, 10.35);
+  g.add(indSign);
+  var indSign2 = indSign.clone();
+  indSign2.position.set(44.35, 12.2, -10);
+  indSign2.rotation.y = Math.PI/2;
+  g.add(indSign2);
+
+  /* --- Dock row facing the street, canopies over each bay --- */
+  var dockXs = [-42, -33.5, -25, -16.5, -8];
+  dockXs.forEach(function(x){
+    buildDockBay(g, x, 0, 18.35, 0, doors);
+    g.add(box(6.4, 0.45, 3.4, awning, x, 5.3, 19.6));
+  });
+  var dockApron = new THREE.Mesh(new THREE.PlaneGeometry(66, 22), M.concrete);
+  dockApron.rotation.x = -Math.PI/2; dockApron.position.set(-19, 0.025, 30); dockApron.receiveShadow = true;
+  g.add(dockApron);
+
+  /* --- Dark bronze wedge building near the gate --- */
+  var wedgeShape = new THREE.Shape();
+  wedgeShape.moveTo(-14, 0);
+  wedgeShape.lineTo(14, 0);
+  wedgeShape.lineTo(14, 11);
+  wedgeShape.lineTo(-14, 4.5);
+  wedgeShape.closePath();
+  var wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, { depth: 18, bevelEnabled: false });
+  var wedge = new THREE.Mesh(wedgeGeo, bronze);
+  wedge.position.set(-70, 0, 20);
+  wedge.castShadow = true; wedge.receiveShadow = true;
+  var wedgeEdges = new THREE.LineSegments(new THREE.EdgesGeometry(wedgeGeo, 20), M.line);
+  wedge.add(wedgeEdges);
+  g.add(wedge);
+  g.add(box(24, 2.6, 0.3, M.darkGlass, -70, 1.6, 38.4));
+
+  /* --- Perimeter: block wall west of gate, picket fence east, brick pillars --- */
+  g.add(edged(box(84, 2.8, 0.9, blockWall, -46, 1.4, 40)));
+  g.add(edged(box(0.9, 2.8, 14, blockWall, -87.5, 1.4, 33.5)));
+  var pil1 = edged(box(1.4, 3.3, 1.4, pillarBrick, -3, 1.65, 40));
+  var pil2 = edged(box(1.4, 3.3, 1.4, pillarBrick, 27, 1.65, 40));
+  g.add(pil1, pil2);
+  for (var fx = 29; fx <= 92; fx += 1.4) {
+    g.add(box(0.12, 2.1, 0.12, picket, fx, 1.05, 40, false));
+  }
+  g.add(box(64, 0.1, 0.14, picket, 60.5, 2.0, 40, false));
+  g.add(box(64, 0.1, 0.14, picket, 60.5, 0.7, 40, false));
+  var pil3 = edged(box(1.4, 3.3, 1.4, pillarBrick, 93, 1.65, 40));
+  g.add(pil3);
+  // gate directional sign
+  var gateTex = makeSignTexture('VISITORS', { w: 900, h: 280, size: 84, color: '#ffffff', line2: 'SHIPPING & RECEIVING' });
+  var gateSign = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 2.0), new THREE.MeshBasicMaterial({ map: gateTex, transparent: true }));
+  var gateBack = box(6.8, 2.3, 0.2, M.navyBand, -8, 2.2, 43);
+  gateSign.position.set(-8, 2.2, 43.15);
+  g.add(gateBack, gateSign);
+  g.add(box(0.25, 2.2, 0.25, picket, -10.6, 1.1, 43));
+  g.add(box(0.25, 2.2, 0.25, picket, -5.4, 1.1, 43));
+
+  /* --- Monument sign at the street --- */
+  var mon = new THREE.Group();
+  mon.add(edged(box(9, 3.2, 0.9, M.navyBand, 0, 1.9, 0)));
+  mon.add(box(9.4, 0.4, 1.1, M.greenAccent, 0, 0.4, 0));
+  var monTex = makeSignTexture('ENVISION', { w: 1024, h: 300, size: 120, spacing: 12, underline: true, ulWidth: 220, dy: -20 });
+  var monFace = new THREE.Mesh(new THREE.PlaneGeometry(8, 2.4), new THREE.MeshBasicMaterial({ map: monTex, transparent: true }));
+  monFace.position.set(0, 1.95, 0.48); mon.add(monFace);
+  mon.position.set(-56, 0, 45);
+  g.add(mon);
+
+  /* --- Employee parking inside the fence, east side, with shuttle --- */
+  buildLot(g, 40, 24, 68, 26);
+  for (var c = 0; c < 5; c++) { if (Math.random() < 0.85) buildCar(g, 52 + c * 7.4, 20, Math.PI); }
+  for (var c2 = 0; c2 < 5; c2++) { if (Math.random() < 0.85) buildCar(g, 52 + c2 * 7.4, 34, 0); }
+  // Envision shuttle bus
+  var shuttle = new THREE.Group();
+  shuttle.add(edged(box(7.4, 2.9, 2.5, mat(0xf2f3f4, { roughness: 0.5 }), 0, 1.85, 0)));
+  shuttle.add(box(7.5, 0.7, 2.52, M.greenAccent, 0, 1.35, 0));
+  shuttle.add(box(5.4, 1.0, 2.54, M.darkGlass, 0.4, 2.6, 0));
+  [[-2.4, 1.05],[2.4, 1.05],[-2.4, -1.05],[2.4, -1.05]].forEach(function(p){
+    var wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.34, 12), M.tire);
+    wheel.rotation.x = Math.PI/2; wheel.position.set(p[0], 0.5, p[1]);
+    shuttle.add(wheel);
+  });
+  shuttle.position.set(60, 0, 8); shuttle.rotation.y = Math.PI/2;
+  g.add(shuttle);
+  buildLightPole(g, 50, 30);
+  buildLightPole(g, 84, 22);
+  buildLightPole(g, -30, 33);
+
+  /* --- Landscaping --- */
+  [[-84, 46],[-40, 46],[10, 46],[46, 46],[86, 46],[-96, 10],[-92, -34],[96, -8],[90, -40],[-56, -46],[10, -52],[56, -50],[-20, 45]].forEach(function(p){ buildTree(g, p[0], p[1], 0.85 + Math.random()*0.55); });
+  buildSidewalk(g, 170, 2.6, 0, 44.6);
+  buildSidewalk(g, 3.2, 10, 34, 34.5);
+
+  /* --- Trucks: in the gate, along the apron, nose into the street-facing docks --- */
+  function addTruck(offset, bayX, doorIndex) {
+    var t = buildTruck();
+    g.add(t);
+    var pts = [
+      [230, 0, 54], [40, 0, 54], [14, 0, 47], [12, 0, 34], [bayX, 0, 32],
+      [bayX, 0, 21.6],
+      [bayX, 0, 32], [6, 0, 33], [20, 0, 47], [60, 0, 50], [250, 0, 50]
+    ];
+    var runner = new PathRunner(t, pts, 9, {
+      headingOffset: -Math.PI/2, offset: offset,
+      waits: { 5: 7.5 },
+      onArrive: function(seg) { if (seg === 5) doors[doorIndex].userData.targetOpen = 1; },
+      onWaitTick: function(rn) { if (rn.wait <= 0.4) doors[doorIndex].userData.targetOpen = 0; }
+    });
+    trucks.push(runner);
+  }
+  addTruck(0, -25, 2);
+  addTruck(190, -42, 0);
+
+  /* --- People: office walkway, lot, gate --- */
+  var peoplePaths = [
+    [[52, 0, 26], [40, 0, 30], [34, 0, 32], [34, 0, 37], [34, 0, 32], [40, 0, 30], [52, 0, 26]],
+    [[16, 0, 44.6], [30, 0, 44.6], [34, 0, 40], [34, 0, 35], [34, 0, 40], [30, 0, 44.6], [16, 0, 44.6]],
+    [[64, 0, 14], [46, 0, 24], [36, 0, 33], [46, 0, 24], [64, 0, 14]]
+  ];
+  peoplePaths.forEach(function(path, i){
+    for (var k = 0; k < 2; k++) {
+      var person = buildPerson();
+      g.add(person);
+      people.push(new PathRunner(person, path, 1.4 + Math.random()*0.7, { bob: true, seed: i*7+k*3, offset: k * 16 + i * 7 }));
+    }
+  });
+
+  /* --- Development phase overlay --- */
+  var phases = new THREE.Group();
+  phases.visible = false;
+  function phaseZone(color, w, h, d, x, y, z, label, sub) {
+    var zone = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.28, depthWrite: false }));
+    zone.position.set(x, y, z);
+    var edge = new THREE.LineSegments(new THREE.EdgesGeometry(zone.geometry), new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.9 }));
+    zone.add(edge);
+    phases.add(zone);
+    var lbl = makeLabelSprite(label, sub, '#' + ('000000' + color.toString(16)).slice(-6));
+    lbl.position.set(x, y + h/2 + 4.5, z);
+    phases.add(lbl);
+  }
+  phaseZone(BRAND.green, 47, 11, 24, -26.5, 5.5, 6, 'Phase 1', 'Sep 30, 2026');
+  phaseZone(BRAND.brightBlue, 47, 13, 24, 20.5, 6.5, 6, 'Phase 2A', 'Oct 30, 2026');
+  phaseZone(BRAND.goldenrod, 47, 11, 24, -26.5, 5.5, -18, 'Phase 2B', 'Nov 30, 2026');
+  phaseZone(BRAND.terracotta, 47, 13, 24, 20.5, 6.5, -18, 'Phase 3', 'Dec 31, 2026');
+  var ghost = new THREE.Mesh(new THREE.BoxGeometry(26, 9, 34), new THREE.MeshBasicMaterial({ color: BRAND.green, wireframe: true, transparent: true, opacity: 0.5 }));
+  ghost.position.set(-72, 4.5, -12);
+  phases.add(ghost);
+  var ghostLbl = makeLabelSprite('Expansion', 'S. Water St. Development', '#78BE21');
+  ghostLbl.position.set(-72, 13, -12);
+  phases.add(ghostLbl);
+  g.add(phases);
+
+  /* --- Hotspots --- */
+  var hotspots = [
+    {
+      id: 'w-welcome', title: 'Wichita Campus', eyebrow: '2301 S Water Street',
+      body: 'Home to Envision Industries since 2000, the gated Water Street campus is where Envision converts raw materials into finished goods used across the country and around the world. Through the S. Water St. Development Project, the campus is growing to bring programs, services, and operations together in one place.',
+      stats: ['Since 1933', '550+ employees', 'AbilityOne and NIB affiliated'],
+      pos: [11, 7, 42], cam: [22, 14, 88], look: [4, 4, 26]
+    },
+    {
+      id: 'w-mfg', title: 'Manufacturing Floor', eyebrow: 'Envision Industries',
+      body: 'Behind the high-bay walls, production lines run SKILCRAFT product families including trash bags and can liners, seal closure bags, grocery bags, rifle slings, and Visi-belts, alongside eco-friendly liners, disaster aid items, and military protective wear. The majority of direct labor hours are performed by people who are blind or have low vision.',
+      stats: ['4M+ hours of employment since 1980', 'Ships worldwide'],
+      pos: [26, 17, -10], cam: [82, 40, -52], look: [20, 7, -8]
+    },
+    {
+      id: 'w-dock', title: 'Shipping and Receiving', eyebrow: 'Fulfillment',
+      body: 'Five canopied dock doors face S Water Street, moving thousands of customer orders every year, from inbound raw material to finished goods shipping to government, commercial, and military customers around the world. Watch the trucks come through the gate and work the bays.',
+      stats: ['5 bays', 'Global distribution'],
+      pos: [-25, 8, 22], cam: [-38, 17, 70], look: [-25, 4, 18]
+    },
+    {
+      id: 'w-print', title: 'Envision Print', eyebrow: 'Print Operations',
+      body: 'Full-service digital and commercial printing for government and commercial customers, from business cards and mailing to high-quality production runs, including Braille printing.',
+      stats: ['Commercial and government', 'Braille capable'],
+      pos: [-30, 12, -14], cam: [-84, 30, -58], look: [-22, 5, -8]
+    },
+    {
+      id: 'w-interface', title: 'Envision Interface', eyebrow: 'Contact Center Services',
+      body: 'An inbound contact center staffed by highly skilled professionals who are blind or have low vision, delivering customer service for enterprise and government clients, alongside the two-story office block at the front of the plant.',
+      stats: ['Inbound customer service'],
+      pos: [29, 10, 26], cam: [64, 22, 74], look: [26, 5, 20]
+    },
+    {
+      id: 'w-dev', title: 'S. Water St. Development Project', eyebrow: 'Renovation and Expansion',
+      body: 'A multi-phase renovation and expansion delivered with design-build partner Hutton and supported by the City of Wichita and Sedgwick County. The project consolidates childhood education, low vision rehabilitation, workforce innovation, and applied research on one campus alongside manufacturing. Move-ins run September 30, October 30, November 30, and December 31, 2026. Toggle Phases in the top bar to see the sequence.',
+      stats: ['Move-In Phase I and II · 2026', 'Design-build: Hutton'],
+      pos: [-72, 11, -12], cam: [-124, 28, 30], look: [-58, 5, -8], showPhases: true
+    }
+  ];
+
+  return {
+    key: 'wichita', group: g, doors: doors, trucks: trucks, people: people,
+    phases: phases, hotspots: hotspots,
+    home: { cam: [56, 42, 118], look: [-4, 4, 6] },
+    sidebarLabel: 'Wichita Campus · 2301 S Water Street'
+  };
+}
+/* =========================================================
+   DALLAS CAMPUS, 1801 VALLEY VIEW LANE, FARMERS BRANCH
+   ========================================================= */
+function buildDallas() {
+  var g = new THREE.Group();
+  g.visible = false;
+  scene.add(g);
+  var doors = [];
+  var trucks = [];
+  var people = [];
+  var flags = [];
+
+  buildGround(g, 900);
+
+  var ROT = -Math.PI / 4;
+  var RC = Math.cos(ROT), RS = Math.sin(ROT);
+  function rotY(p) { return [p[0]*RC + p[2]*RS, p[1] || 0, -p[0]*RS + p[2]*RC]; }
+
+  /* --- Streets: Valley View Ln (S), Davis Rd (W), Keenan Bridge Rd (N), east drive --- */
+  buildRoad(g, 460, 16, 0, 100);
+  buildRoad(g, 16, 360, -108, -14);
+  buildRoad(g, 400, 14, 0, -118);
+  buildRoad(g, 14, 232, 108, -12);
+  var dashMat = new THREE.MeshBasicMaterial({ color: 0xe6d75a });
+  for (var i = -220; i < 220; i += 12) {
+    var dash = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.3), dashMat);
+    dash.rotation.x = -Math.PI/2; dash.position.set(i, 0.03, 100);
+    g.add(dash);
+  }
+
+  /* --- Building: chamfered square set diagonal to the streets, brick, courtyard --- */
+  var brick = mat(0x6e4838, { roughness: 0.92 });
+  var brickLight = mat(0x96604a, { roughness: 0.88 });
+  var parapet = mat(0x272b30, { roughness: 0.7 });
+  var roofTan = mat(0xd9d0bf, { roughness: 0.95 });
+  var canopyWhite = mat(0xe9ebec, { roughness: 0.6 });
+
+  var bld = new THREE.Group();
+  bld.rotation.y = ROT;
+  g.add(bld);
+
+  var H = 13, HALF = 52, CH = 30;
+  var outline = [
+    [-HALF+CH, -HALF], [HALF-CH, -HALF], [HALF, -HALF+CH], [HALF, HALF-CH],
+    [HALF-CH, HALF], [-HALF+CH, HALF], [-HALF, HALF-CH], [-HALF, -HALF+CH]
+  ];
+  var shape = new THREE.Shape();
+  shape.moveTo(outline[0][0], -outline[0][1]);
+  for (var k = 1; k < outline.length; k++) shape.lineTo(outline[k][0], -outline[k][1]);
+  shape.closePath();
+  var holePlan = [[-30, -2], [-10, -2], [-10, 14], [-30, 14]];
+  var hole = new THREE.Path();
+  hole.moveTo(holePlan[0][0], -holePlan[0][1]);
+  for (var hk = 1; hk < holePlan.length; hk++) hole.lineTo(holePlan[hk][0], -holePlan[hk][1]);
+  hole.closePath();
+  shape.holes.push(hole);
+
+  function extrudePlan(sh, height, material, y, scaleXZ) {
+    var geo = new THREE.ExtrudeGeometry(sh, { depth: height, bevelEnabled: false });
+    geo.rotateX(-Math.PI/2);
+    var m = new THREE.Mesh(geo, material);
+    m.position.y = y || 0;
+    if (scaleXZ) m.scale.set(scaleXZ, 1, scaleXZ);
+    m.castShadow = true; m.receiveShadow = true;
+    return m;
+  }
+  var body = extrudePlan(shape, H, brick, 0);
+  var cap = extrudePlan(shape, 1.3, parapet, H, 1.012);
+  var roofSlab = extrudePlan(shape, 0.25, roofTan, H + 0.06, 0.996);
+  bld.add(body, cap, roofSlab);
+
+  /* --- Ribbon windows generated per facade edge --- */
+  for (var e = 0; e < outline.length; e++) {
+    var a = outline[e], b = outline[(e+1) % outline.length];
+    var dx = b[0]-a[0], dz = b[1]-a[1];
+    var len = Math.hypot(dx, dz);
+    if (len < 18) continue;
+    var mx = (a[0]+b[0])/2, mz = (a[1]+b[1])/2;
+    var nx = dz/len, nz = -dx/len;
+    var ang = Math.atan2(-dz, dx);
+    var isDockFace = (mz < -45 && Math.abs(mx) < 26);
+    [4.2, 9.8].forEach(function(yy){
+      if (isDockFace && yy < 6) return;
+      var ribbon = new THREE.Mesh(new THREE.BoxGeometry(len - 7, 1.9, 0.34), M.darkGlass);
+      ribbon.position.set(mx + nx*0.42, yy, mz + nz*0.42);
+      ribbon.rotation.y = ang;
+      bld.add(ribbon);
+    });
+  }
+
+  /* --- Entrance on the SE chamfer: glass, canopy, ENVISION sign --- */
+  var entry = new THREE.Group();
+  entry.position.set(37.4, 0, 37.4);
+  entry.rotation.y = Math.PI/4;
+  entry.add(box(16, 4.2, 0.5, M.darkGlass, 0, 2.1, 0.2));
+  entry.add(box(18, 0.45, 4.6, canopyWhite, 0, 4.5, 2.4));
+  entry.add(box(0.4, 4.3, 0.4, parapet, -8, 2.15, 4.2));
+  entry.add(box(0.4, 4.3, 0.4, parapet, 8, 2.15, 4.2));
+  bld.add(entry);
+  var envTex = makeSignTexture('ENVISION', { w: 1024, h: 200, size: 116, spacing: 12, color: '#78BE21' });
+  var envSign = new THREE.Mesh(new THREE.PlaneGeometry(20, 3.6), new THREE.MeshBasicMaterial({ map: envTex, transparent: true }));
+  envSign.position.set(37.7, 10.6, 37.7);
+  envSign.rotation.y = Math.PI/4;
+  bld.add(envSign);
+
+  /* --- Hudson Workforce Innovation Center lettering, NW face --- */
+  var hudTex = makeSignTexture('WILLIAM L. HUDSON', { w: 1400, h: 280, size: 92, color: '#d9d2c8', line2: 'WORKFORCE INNOVATION CENTER' });
+  var hudSign = new THREE.Mesh(new THREE.PlaneGeometry(30, 5.8), new THREE.MeshBasicMaterial({ map: hudTex, transparent: true }));
+  hudSign.position.set(-52.42, 9.6, 0);
+  hudSign.rotation.y = -Math.PI/2;
+  bld.add(hudSign);
+
+  /* --- Courtyard pergola + planting --- */
+  for (var px = -29; px <= -11; px += 2) {
+    bld.add(box(0.32, 0.32, 15.4, parapet, px, H - 0.9, 6, false));
+  }
+  bld.add(box(18, 0.5, 15, mat(0x5f8a44, { roughness: 1 }), -20, 0.25, 6, false));
+
+  /* --- Covered dock on the NE face: recess, bays, dumpsters --- */
+  bld.add(box(36, 3.4, 5.6, parapet, 4, H - 1.7, -49.4));
+  bld.add(box(38, 9.4, 1.6, mat(0x1c2228, { roughness: 0.9 }), 4, 4.7, -51.6));
+  var dockLocalXs = [-6, 4, 14];
+  dockLocalXs.forEach(function(x){ buildDockBay(bld, x, 0, -51.9, Math.PI, doors); });
+  bld.add(box(3.4, 2.0, 1.8, mat(0x2f4a3a, { roughness: 0.8 }), 24, 1.0, -49));
+  bld.add(box(3.4, 2.0, 1.8, mat(0x3a4a5a, { roughness: 0.8 }), 28.4, 1.0, -49));
+
+  /* --- North-corner patio pavilion (cafeteria) --- */
+  var pav = new THREE.Group();
+  pav.position.set(-36.5, 0, -36.5);
+  pav.rotation.y = Math.PI/4;
+  pav.add(edged(box(22, 10, 8, brickLight, 0, 5, -1)));
+  pav.add(box(20, 3.6, 0.4, M.darkGlass, 0, 2.6, 3.1));
+  pav.add(box(24, 0.4, 6.5, canopyWhite, 0, 5.2, 5.4));
+  pav.add(box(0.35, 5.0, 0.35, canopyWhite, -9, 2.5, 7.6));
+  pav.add(box(0.35, 5.0, 0.35, canopyWhite, 9, 2.5, 7.6));
+  for (var f = -11; f <= 11; f += 2.2) pav.add(box(0.14, 1.1, 0.14, parapet, f, 0.55, 9.6, false));
+  pav.add(box(22.4, 0.1, 0.14, parapet, 0, 1.1, 9.6, false));
+  [[-6, 6.6],[0, 7.2],[6, 6.6]].forEach(function(t){
+    var table = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.1, 10), canopyWhite);
+    table.position.set(t[0], 1.0, t[1]);
+    var leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.0, 6), parapet);
+    leg.position.set(t[0], 0.5, t[1]);
+    pav.add(table, leg);
+  });
+  bld.add(pav);
+
+  /* --- Playground along the east wall (child development center) --- */
+  var play = new THREE.Group();
+  play.position.set(52, 0, 38);
+  play.rotation.y = Math.PI/4;
+  var pad = new THREE.Mesh(new THREE.PlaneGeometry(20, 13), mat(0x4a7f70, { roughness: 1 }));
+  pad.rotation.x = -Math.PI/2; pad.position.y = 0.03; pad.receiveShadow = true;
+  play.add(pad);
+  // play structure: two towers, bridge, slide
+  var postMat = mat(BRAND.navy, { roughness: 0.6 });
+  [[-4.5, -1.5],[-1.5, -1.5],[-4.5, 1.5],[-1.5, 1.5],[3.0, -1.5],[5.6, -1.5],[3.0, 1.5],[5.6, 1.5]].forEach(function(p){
+    play.add(box(0.22, 2.6, 0.22, postMat, p[0], 1.3, p[1]));
+  });
+  play.add(box(3.4, 0.3, 3.4, mat(BRAND.brightBlue, { roughness: 0.6 }), -3, 2.5, 0));
+  play.add(box(3.0, 0.3, 3.4, mat(BRAND.brightBlue, { roughness: 0.6 }), 4.3, 2.5, 0));
+  play.add(box(4.0, 0.25, 1.6, mat(BRAND.goldenrod, { roughness: 0.6 }), 0.7, 2.55, 0));
+  var roof1 = new THREE.Mesh(new THREE.ConeGeometry(2.6, 1.8, 4), mat(BRAND.terracotta, { roughness: 0.7 }));
+  roof1.position.set(-3, 4.3, 0); roof1.rotation.y = Math.PI/4; roof1.castShadow = true;
+  play.add(roof1);
+  var slide = box(4.6, 0.24, 1.2, mat(BRAND.goldenrod, { roughness: 0.4 }), 7.8, 1.35, 0);
+  slide.rotation.z = 0.5;
+  play.add(slide);
+  // swing set
+  var swingA = box(0.2, 2.8, 0.2, postMat, -8.5, 1.4, -4.6);
+  swingA.rotation.z = 0.28;
+  var swingB = box(0.2, 2.8, 0.2, postMat, -6.9, 1.4, -4.6);
+  swingB.rotation.z = -0.28;
+  var swingA2 = swingA.clone(); swingA2.position.z = -1.8;
+  var swingB2 = swingB.clone(); swingB2.position.z = -1.8;
+  play.add(swingA, swingB, swingA2, swingB2);
+  play.add(box(0.16, 0.16, 3.2, mat(BRAND.green, { roughness: 0.5 }), -7.7, 2.7, -3.2));
+  [ -3.9, -2.5 ].forEach(function(sz){
+    play.add(box(0.7, 0.12, 0.3, mat(0x2e3742), -7.7, 0.9, sz, false));
+    play.add(box(0.05, 1.7, 0.05, mat(0xaab2b8), -7.95, 1.8, sz, false));
+    play.add(box(0.05, 1.7, 0.05, mat(0xaab2b8), -7.45, 1.8, sz, false));
+  });
+  // perimeter fence in Envision green
+  for (var pf = -10; pf <= 10; pf += 1.3) {
+    play.add(box(0.1, 1.2, 0.1, mat(BRAND.green, { roughness: 0.7 }), pf, 0.6, -6.4, false));
+    play.add(box(0.1, 1.2, 0.1, mat(BRAND.green, { roughness: 0.7 }), pf, 0.6, 6.4, false));
+  }
+  for (var pf2 = -6.4; pf2 <= 6.4; pf2 += 1.3) {
+    play.add(box(0.1, 1.2, 0.1, mat(BRAND.green, { roughness: 0.7 }), -10, 0.6, pf2, false));
+    play.add(box(0.1, 1.2, 0.1, mat(BRAND.green, { roughness: 0.7 }), 10, 0.6, pf2, false));
+  }
+  play.add(box(20.2, 0.08, 0.12, mat(BRAND.green, { roughness: 0.7 }), 0, 1.2, -6.4, false));
+  play.add(box(20.2, 0.08, 0.12, mat(BRAND.green, { roughness: 0.7 }), 0, 1.2, 6.4, false));
+  g.add(play);
+  buildLightPole(g, 40, 56);
+  buildLightPole(g, -40, 66);
+  buildLightPole(g, -20, -76);
+  buildLightPole(g, 40, -80);
+
+  /* --- Rooftop plant, matching the aerial density --- */
+  var hvacSpots = [[-30,-20],[-14,-30],[2,-36],[18,-28],[30,-14],[36,2],[28,18],[12,30],[-4,34],[-22,26],[-36,10],[6,-10],[22,4],[-8,-14]];
+  hvacSpots.forEach(function(p){ buildHVAC(bld, p[0], H + 0.3, p[1]); });
+
+  /* --- Flag court: US + Texas --- */
+  function flagPole(x, z, tex) {
+    var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 13, 8), mat(0xc7ccd1, { metalness: 0.6, roughness: 0.3 }));
+    pole.position.set(x, 6.5, z); pole.castShadow = true;
+    g.add(pole);
+    var flag = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 2.2), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+    flag.position.set(x + 1.85, 11.6, z);
+    g.add(flag);
+    flags.push(flag);
+  }
+  function usFlagTexture() {
+    var c = document.createElement('canvas'); c.width = 256; c.height = 160;
+    var ctx = c.getContext('2d');
+    for (var st = 0; st < 13; st++) { ctx.fillStyle = st % 2 ? '#ffffff' : '#B22234'; ctx.fillRect(0, st * (160/13), 256, 160/13); }
+    ctx.fillStyle = '#3C3B6E'; ctx.fillRect(0, 0, 104, 160 * 7/13);
+    ctx.fillStyle = '#ffffff';
+    for (var r = 0; r < 5; r++) for (var cc = 0; cc < 6; cc++) { ctx.beginPath(); ctx.arc(10 + cc*17, 9 + r*16, 2.6, 0, Math.PI*2); ctx.fill(); }
+    return new THREE.CanvasTexture(c);
+  }
+  function txFlagTexture() {
+    var c = document.createElement('canvas'); c.width = 256; c.height = 160;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 256, 80);
+    ctx.fillStyle = '#BF0A30'; ctx.fillRect(0, 80, 256, 80);
+    ctx.fillStyle = '#00205B'; ctx.fillRect(0, 0, 86, 160);
+    ctx.fillStyle = '#ffffff';
+    ctx.save(); ctx.translate(43, 80);
+    ctx.beginPath();
+    for (var sp = 0; sp < 5; sp++) {
+      var angO = -Math.PI/2 + sp * 2*Math.PI/5;
+      var angI = angO + Math.PI/5;
+      ctx.lineTo(Math.cos(angO)*22, Math.sin(angO)*22);
+      ctx.lineTo(Math.cos(angI)*9, Math.sin(angI)*9);
+    }
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    return new THREE.CanvasTexture(c);
+  }
+  flagPole(14, 68, usFlagTexture());
+  flagPole(20, 72, txFlagTexture());
+
+  /* --- Monument sign --- */
+  var mon = new THREE.Group();
+  mon.add(edged(box(10, 3.4, 1.0, M.navyBand, 0, 2.0, 0)));
+  mon.add(box(10.4, 0.45, 1.2, M.greenAccent, 0, 0.45, 0));
+  var monTex = makeSignTexture('ENVISION', { w: 1024, h: 300, size: 120, spacing: 12, underline: true, ulWidth: 220, dy: -20 });
+  var monFace = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 2.6), new THREE.MeshBasicMaterial({ map: monTex, transparent: true }));
+  monFace.position.set(0, 2.05, 0.55); mon.add(monFace);
+  mon.position.set(-30, 0, 88);
+  g.add(mon);
+
+  /* --- Parking: visitor lot (S), staff lot (N), fleet yard (NE dock) --- */
+  buildLot(g, 92, 26, 26, 74);
+  buildLot(g, 116, 30, -34, -88);
+  var yard = new THREE.Mesh(new THREE.PlaneGeometry(64, 56), M.concrete);
+  yard.rotation.x = -Math.PI/2; yard.position.set(66, 0.025, -44); yard.receiveShadow = true;
+  g.add(yard);
+  buildSidewalk(g, 4, 22, 0, 64);
+  buildSidewalk(g, 30, 4, 0, 55);
+  for (var vc = 0; vc < 11; vc++) { if (Math.random() < 0.8) buildCar(g, -14 + vc * 7.6, 68, Math.PI/2); }
+  for (var nc = 0; nc < 13; nc++) { if (Math.random() < 0.75) buildCar(g, -84 + nc * 8.4, -82, -Math.PI/2); }
+  for (var fv = 0; fv < 6; fv++) buildCar(g, 82, -22 - fv * 7.2, Math.PI);
+
+  /* --- Landscaping: crepe myrtles up front, shade trees around --- */
+  var pinkLeaf = mat(0xc97f9d, { roughness: 1 });
+  function crepeMyrtle(x, z) {
+    var t = new THREE.Group();
+    t.add(box(0.34, 1.6, 0.34, M.trunk, 0, 0.8, 0));
+    var f1 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 0), pinkLeaf);
+    f1.position.y = 2.4; f1.castShadow = true;
+    var f2 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 0), M.leaf1);
+    f2.position.set(0.6, 3.0, 0.3); f2.castShadow = true;
+    t.add(f1, f2);
+    t.position.set(x, 0, z); t.rotation.y = Math.random()*Math.PI*2;
+    g.add(t);
+  }
+  [[-24, 58],[-15, 60],[-6, 58],[8, 59],[30, 60],[40, 58],[-40, 64],[50, 66]].forEach(function(p){ crepeMyrtle(p[0], p[1]); });
+  [[-90, 60],[-92, -40],[-60, -110],[20, -110],[64, -104],[100, 60],[120, -20],[-64, 84],[70, 84],[96, -76],[-120, 30],[-120, -70]].forEach(function(p){ buildTree(g, p[0], p[1], 0.9 + Math.random()*0.6); });
+
+  /* --- Farmers Branch water tower, NW landmark --- */
+  var tower = new THREE.Group();
+  var stem = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3.2, 26, 14), M.concrete);
+  stem.position.y = 13; stem.castShadow = true;
+  var tank = new THREE.Mesh(new THREE.SphereGeometry(9, 18, 14), mat(0x78BE21, { roughness: 0.55 }));
+  tank.scale.set(1, 0.82, 1); tank.position.y = 31; tank.castShadow = true;
+  var fbTex = makeSignTexture('FARMERS BRANCH', { w: 1024, h: 200, size: 88, color: '#ffffff' });
+  var fbBand = new THREE.Mesh(new THREE.CylinderGeometry(9.15, 9.15, 3.4, 24, 1, true), new THREE.MeshBasicMaterial({ map: fbTex, transparent: true, side: THREE.DoubleSide }));
+  fbBand.position.y = 32;
+  tower.add(stem, tank, fbBand);
+  tower.position.set(-150, 0, -150);
+  g.add(tower);
+
+  /* --- Neighborhood rooftops across Valley View Ln --- */
+  var roofMat = mat(0x54595e, { roughness: 1 });
+  var wallMat = mat(0xcfc4b2, { roughness: 1 });
+  function house(x, z, rotYaw) {
+    var hgrp = new THREE.Group();
+    hgrp.add(edged(box(9, 4, 7, wallMat, 0, 2, 0)));
+    var roofShape = new THREE.Shape();
+    roofShape.moveTo(-4.9, 0); roofShape.lineTo(0, 3.1); roofShape.lineTo(4.9, 0);
+    roofShape.closePath();
+    var roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 7.6, bevelEnabled: false });
+    var roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 4, -3.8); roof.castShadow = true;
+    hgrp.add(roof);
+    hgrp.position.set(x, 0, z); hgrp.rotation.y = rotYaw || 0;
+    g.add(hgrp);
+  }
+  [[-70, 126, 0.1],[-48, 130, -0.15],[-24, 126, 0.05],[0, 132, 0.2],[24, 127, -0.1],[48, 133, 0.12],[72, 128, 0],[96, 134, -0.18],[-60, 152, 0],[-20, 156, 0.1],[20, 152, -0.05],[60, 156, 0.08]].forEach(function(hh){ house(hh[0], hh[1], hh[2]); });
+
+  /* --- Trucks: Valley View, up the east drive, nose into the NE dock --- */
+  function addTruck(offset, bayLocalX, doorIndex) {
+    var t = buildTruck();
+    g.add(t);
+    var dock = rotY([bayLocalX, 0, -56.5]);
+    var appr = rotY([bayLocalX, 0, -74]);
+    var stage = rotY([bayLocalX, 0, -92]);
+    var pts = [
+      [200, 0, 100], [122, 0, 100], [108, 0, 88], [108, 0, -66],
+      [stage[0], 0, stage[2]], [appr[0], 0, appr[2]],
+      [dock[0], 0, dock[2]],
+      [appr[0], 0, appr[2]], [stage[0], 0, stage[2]],
+      [108, 0, -80], [108, 0, -112], [160, 0, -118], [230, 0, -118],
+      [260, 0, -118], [260, 0, 100], [220, 0, 100]
+    ];
+    var runner = new PathRunner(t, pts, 10, {
+      headingOffset: -Math.PI/2, offset: offset,
+      waits: { 6: 8 },
+      onArrive: function(seg) { if (seg === 6) doors[doorIndex].userData.targetOpen = 1; },
+      onWaitTick: function(rn) { if (rn.wait <= 0.4) doors[doorIndex].userData.targetOpen = 0; }
+    });
+    trucks.push(runner);
+  }
+  addTruck(0, -6, 0);
+  addTruck(300, 14, 2);
+
+  /* --- People: entry walkway and patio --- */
+  var frontPaths = [
+    [[-24, 0, 55], [-4, 0, 55], [0, 0, 58], [0, 0, 66], [0, 0, 58], [4, 0, 55], [26, 0, 55], [-4, 0, 55]],
+    [[40, 0, 68], [4, 0, 62], [0, 0, 57], [4, 0, 62], [40, 0, 68], [58, 0, 72]],
+    [[-14, 0, -64], [-2, 0, -60], [8, 0, -64], [-2, 0, -60], [-14, 0, -64]]
+  ];
+  frontPaths.forEach(function(path, i){
+    for (var k2 = 0; k2 < 2; k2++) {
+      var person = buildPerson();
+      g.add(person);
+      people.push(new PathRunner(person, path, 1.4 + Math.random()*0.8, { bob: true, seed: i*5+k2*2, offset: k2 * 20 + i * 8 }));
+    }
+  });
+
+  /* --- Hotspots (world positions derived from the real plan) --- */
+  var hotspots = [
+    {
+      id: 'd-welcome', title: 'Dallas Campus', eyebrow: '1801 Valley View Lane · Farmers Branch',
+      body: 'A 210,000 square foot campus on 13.6 acres, renovated from a former telecom technical building and opened in October 2024. The entire North Texas operation lives under one roof: manufacturing, rehabilitation, education, programs, and services for the 150,000 North Texans who are blind or have low vision.',
+      stats: ['210,000 sq ft', 'Opened Oct 31, 2024', '13.6 acres'],
+      pos: [0, 9, 56], cam: [26, 24, 128], look: [0, 7, 34]
+    },
+    {
+      id: 'd-mfg', title: 'Manufacturing Center', eyebrow: 'Production',
+      body: 'Production of vests, eyeglass cases, diploma covers, and padded award certificate binders for military, government, and commercial customers, recently modernized with new marker and binder machines.',
+      stats: ['Modernized 2025', 'Military and commercial lines'],
+      pos: [-46, 16, 8], cam: [-118, 34, 34], look: [-30, 6, 4]
+    },
+    {
+      id: 'd-interface', title: 'Envision Interface Contact Center', eyebrow: 'Contact Center',
+      body: 'A 100-seat contact center where trained professionals who are blind or have low vision deliver inbound customer support, including work supporting the State of Texas.',
+      stats: ['100 seats', 'Supports the State of Texas'],
+      pos: [46, 16, 8], cam: [122, 34, 40], look: [30, 7, 4]
+    },
+    {
+      id: 'd-rehab', title: 'Gigi and Carl Allen Family Vision Rehabilitation Center', eyebrow: 'Second Floor · Rehabilitation',
+      body: 'Comprehensive, multidisciplinary vision rehabilitation including occupational therapy, orientation and mobility training, independent living skills, and assistive technology training, featuring Esther’s Place Model Apartment and an Assistive Technology Lab. VisionMAX by Dr. Carolyn Carman provides low vision clinical care on campus. Services are provided regardless of ability to pay.',
+      stats: ['Serves any age', 'Regardless of ability to pay'],
+      pos: [0, 18, 30], cam: [-40, 36, 104], look: [0, 10, 20]
+    },
+    {
+      id: 'd-ecdc', title: 'Cathy G. Hudson Early Child Development Center', eyebrow: 'Early Education',
+      body: 'The region’s only vision-integrated early education center, bringing children ages 0 to 5 together in inclusive classrooms regardless of vision, abilities, or skills. The fenced playground sits along the east wall of the building, right outside the classrooms.',
+      stats: ['Ages 0 to 5', 'Opened summer 2025'],
+      pos: [52, 8, 38], cam: [104, 22, 88], look: [48, 3, 34]
+    },
+    {
+      id: 'd-wic', title: 'William L. Hudson Workforce Innovation Center', eyebrow: 'Keenan Bridge Rd Side · Training and Careers',
+      body: 'Named on the building along Keenan Bridge Rd, the Workforce Innovation Center prepares people who are blind or have low vision for high-tech, skilled, and professional roles, bridging labor market gaps with upward mobility in customer service, programming, sales, and management.',
+      stats: ['Career pathways', 'Accessibility expertise'],
+      pos: [-40, 14, -40], cam: [-104, 32, -104], look: [-28, 8, -28]
+    },
+    {
+      id: 'd-arts', title: 'Envision Arts', eyebrow: 'Arts Program',
+      body: 'A dedicated arts space four times larger than the previous studio, with vibrant works by artist George Mendoza displayed throughout the building, and a landscaped interior courtyard at the heart of the plan.',
+      stats: ['4x larger space', 'Monthly sculpting classes'],
+      pos: [-22, 15, 16], cam: [-84, 44, 66], look: [-16, 8, 10]
+    },
+    {
+      id: 'd-cafe', title: 'Cafeteria and Patio', eyebrow: 'Community Hub',
+      body: 'A full cafeteria and kitchen built to serve 400 occupants, opening onto the new covered patio on the north side of the building, and anchoring monthly community programs like bingo, sculpting classes, and adult support groups.',
+      stats: ['Serves 400', 'Outdoor patio'],
+      pos: [0, 11, -58], cam: [-16, 24, -128], look: [0, 6, -44]
+    },
+    {
+      id: 'd-dock', title: 'Distribution Dock', eyebrow: 'Logistics',
+      body: 'A covered dock on the northeast face moves inbound materials and outbound finished goods, connecting Farmers Branch manufacturing to customers nationwide. Watch the bays as the trucks work.',
+      stats: ['Covered bays', 'Nationwide reach'],
+      pos: [46, 9, -46], cam: [112, 24, -100], look: [38, 4, -36]
+    }
+  ];
+
+  return {
+    key: 'dallas', group: g, doors: doors, trucks: trucks, people: people, flags: flags,
+    phases: null, hotspots: hotspots,
+    home: { cam: [64, 52, 168], look: [0, 8, 8] },
+    sidebarLabel: 'Dallas Campus · 1801 Valley View Lane'
+  };
+}
+/* =========================================================
+   CAMERA CONTROLS (custom orbit + pinch)
+   ========================================================= */
+var ctrl = {
+  target: new THREE.Vector3(0, 4, 4),
+  sphere: new THREE.Spherical(130, 1.12, 0.55),
+  velTheta: 0, velPhi: 0,
+  minR: 12, maxR: 340,
+  dragging: false, lastX: 0, lastY: 0,
+  pinchDist: 0, panning: false
+};
+function applyCamera() {
+  ctrl.sphere.phi = Math.max(0.08, Math.min(1.48, ctrl.sphere.phi));
+  ctrl.sphere.radius = Math.max(ctrl.minR, Math.min(ctrl.maxR, ctrl.sphere.radius));
+  var offset = new THREE.Vector3().setFromSpherical(ctrl.sphere);
+  camera.position.copy(ctrl.target).add(offset);
+  camera.lookAt(ctrl.target);
+}
+applyCamera();
+
+var flight = null;
+function flyTo(camPos, lookPos, dur) {
+  var fromCam = camera.position.clone();
+  var fromTarget = ctrl.target.clone();
+  flight = {
+    t: 0, dur: dur || 1.7,
+    fromCam: fromCam, toCam: new THREE.Vector3(camPos[0], camPos[1], camPos[2]),
+    fromTarget: fromTarget, toTarget: new THREE.Vector3(lookPos[0], lookPos[1], lookPos[2])
+  };
+}
+function updateFlight(dt) {
+  if (!flight) return;
+  flight.t += dt / flight.dur;
+  var k = flight.t >= 1 ? 1 : (1 - Math.pow(1 - flight.t, 3));
+  var camPos = new THREE.Vector3().lerpVectors(flight.fromCam, flight.toCam, k);
+  ctrl.target.lerpVectors(flight.fromTarget, flight.toTarget, k);
+  var offset = camPos.clone().sub(ctrl.target);
+  ctrl.sphere.setFromVector3(offset);
+  applyCamera();
+  if (flight.t >= 1) flight = null;
+}
+
+var pointers = {};
+var downInfo = null;
+renderer.domElement.style.touchAction = 'none';
+renderer.domElement.addEventListener('pointerdown', function(e){
+  pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+  var keys = Object.keys(pointers);
+  if (keys.length === 1) {
+    ctrl.dragging = true; ctrl.lastX = e.clientX; ctrl.lastY = e.clientY;
+    downInfo = { x: e.clientX, y: e.clientY, time: performance.now() };
+  } else if (keys.length === 2) {
+    ctrl.dragging = false;
+    var a = pointers[keys[0]], b = pointers[keys[1]];
+    ctrl.pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  stopTour();
+});
+renderer.domElement.addEventListener('pointermove', function(e){
+  if (!pointers[e.pointerId]) return;
+  pointers[e.pointerId].x = e.clientX; pointers[e.pointerId].y = e.clientY;
+  var keys = Object.keys(pointers);
+  if (keys.length === 1 && ctrl.dragging) {
+    var dx = e.clientX - ctrl.lastX, dy = e.clientY - ctrl.lastY;
+    ctrl.lastX = e.clientX; ctrl.lastY = e.clientY;
+    if (e.buttons === 2 || e.shiftKey) {
+      panCamera(dx, dy);
+    } else {
+      ctrl.sphere.theta -= dx * 0.0052;
+      ctrl.sphere.phi -= dy * 0.0052;
+      flight = null;
+      applyCamera();
+    }
+  } else if (keys.length === 2) {
+    var a = pointers[keys[0]], b = pointers[keys[1]];
+    var dist = Math.hypot(a.x - b.x, a.y - b.y);
+    if (ctrl.pinchDist > 0) {
+      ctrl.sphere.radius *= ctrl.pinchDist / dist;
+      flight = null;
+      applyCamera();
+    }
+    ctrl.pinchDist = dist;
+  }
+});
+function endPointer(e){
+  if (downInfo && Object.keys(pointers).length === 1) {
+    var dt = performance.now() - downInfo.time;
+    var moved = Math.hypot(e.clientX - downInfo.x, e.clientY - downInfo.y);
+    if (dt < 650 && moved < 18) handleTap(e.clientX, e.clientY);
+  }
+  delete pointers[e.pointerId];
+  downInfo = null;
+  if (Object.keys(pointers).length === 0) ctrl.dragging = false;
+  ctrl.pinchDist = 0;
+}
+renderer.domElement.addEventListener('pointerup', endPointer);
+renderer.domElement.addEventListener('pointercancel', endPointer);
+renderer.domElement.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+renderer.domElement.addEventListener('wheel', function(e){
+  e.preventDefault();
+  ctrl.sphere.radius *= (1 + Math.sign(e.deltaY) * 0.09);
+  flight = null;
+  applyCamera();
+  stopTour();
+}, { passive: false });
+function panCamera(dx, dy) {
+  var right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+  var up = new THREE.Vector3(0, 1, 0);
+  var scale = ctrl.sphere.radius * 0.0016;
+  ctrl.target.addScaledVector(right, -dx * scale);
+  ctrl.target.addScaledVector(up, dy * scale);
+  flight = null;
+  applyCamera();
+}
+function holdButton(id, fn) {
+  var el = document.getElementById(id);
+  var timer = null;
+  function start(e) {
+    e.preventDefault();
+    fn(); stopTour(); flight = null;
+    timer = setInterval(fn, 70);
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', stop);
+  el.addEventListener('pointerleave', stop);
+  el.addEventListener('pointercancel', stop);
+}
+holdButton('cb-left', function(){ ctrl.sphere.theta += 0.045; applyCamera(); });
+holdButton('cb-right', function(){ ctrl.sphere.theta -= 0.045; applyCamera(); });
+holdButton('cb-up', function(){ ctrl.sphere.phi -= 0.032; applyCamera(); });
+holdButton('cb-down', function(){ ctrl.sphere.phi += 0.032; applyCamera(); });
+holdButton('cb-in', function(){ ctrl.sphere.radius *= 0.955; applyCamera(); });
+holdButton('cb-out', function(){ ctrl.sphere.radius *= 1.048; applyCamera(); });
+
+window.addEventListener('keydown', function(e){
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  var step = 0.06;
+  if (e.key === 'ArrowLeft') { flight = null; ctrl.sphere.theta += step; applyCamera(); stopTour(); }
+  else if (e.key === 'ArrowRight') { flight = null; ctrl.sphere.theta -= step; applyCamera(); stopTour(); }
+  else if (e.key === 'ArrowUp') { flight = null; ctrl.sphere.phi -= step * 0.7; applyCamera(); stopTour(); }
+  else if (e.key === 'ArrowDown') { flight = null; ctrl.sphere.phi += step * 0.7; applyCamera(); stopTour(); }
+  else if (e.key === '+' || e.key === '=') { ctrl.sphere.radius *= 0.92; applyCamera(); }
+  else if (e.key === '-') { ctrl.sphere.radius *= 1.08; applyCamera(); }
+  else if (e.key === 'Escape') { closeInfo(); }
+});
+
+/* =========================================================
+   HOTSPOT SYSTEM
+   ========================================================= */
+var markerSprites = [];
+function attachHotspots(campus) {
+  campus.markerSprites = [];
+  campus.hotspots.forEach(function(hs, idx){
+    var sm = new THREE.SpriteMaterial({ map: markerTexture, transparent: true, depthTest: false });
+    var sp = new THREE.Sprite(sm);
+    sp.scale.set(4.4, 4.4, 1);
+    sp.position.set(hs.pos[0], hs.pos[1], hs.pos[2]);
+    sp.renderOrder = 6;
+    sp.userData.hotspot = hs;
+    sp.userData.index = idx;
+    campus.group.add(sp);
+    campus.markerSprites.push(sp);
+  });
+}
+function handleTap(cx, cy) {
+  if (!activeCampusKey) return;
+  var rect = renderer.domElement.getBoundingClientRect();
+  pointerVec.x = ((cx - rect.left) / rect.width) * 2 - 1;
+  pointerVec.y = -((cy - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointerVec, camera);
+  var campus = campuses[activeCampusKey];
+  var hits = raycaster.intersectObjects(campus.markerSprites, false);
+  if (hits.length) selectHotspot(hits[0].object.userData.index);
+}
+
+var ipPanel = document.getElementById('info-panel');
+var liveRegion = document.getElementById('live-region');
+var lastHotspot = -1, zoomFactor = 0.8;
+function selectHotspot(index, skipFly) {
+  var campus = campuses[activeCampusKey];
+  var hs = campus.hotspots[index];
+  if (!hs) return;
+  if (index === lastHotspot) { zoomFactor = Math.max(0.3, zoomFactor * 0.6); }
+  else { zoomFactor = 0.8; lastHotspot = index; }
+  document.getElementById('ip-eyebrow').textContent = hs.eyebrow;
+  document.getElementById('ip-title').textContent = hs.title;
+  document.getElementById('ip-body').textContent = hs.body;
+  var stats = document.getElementById('ip-stats');
+  stats.innerHTML = '';
+  (hs.stats || []).forEach(function(s){
+    var el = document.createElement('span'); el.textContent = s; stats.appendChild(el);
+  });
+  ipPanel.classList.add('open');
+  if (!skipFly) {
+    var zc = [
+      hs.look[0] + (hs.cam[0] - hs.look[0]) * zoomFactor,
+      hs.look[1] + (hs.cam[1] - hs.look[1]) * zoomFactor,
+      hs.look[2] + (hs.cam[2] - hs.look[2]) * zoomFactor
+    ];
+    flyTo(zc, hs.look, 1.6);
+  }
+  if (hs.showPhases && campus.phases) setPhases(true);
+  liveRegion.textContent = hs.title + '. ' + hs.body;
+  document.querySelectorAll('.hs-btn').forEach(function(b, i){
+    b.classList.toggle('active', i === index);
+  });
+}
+function closeInfo() {
+  ipPanel.classList.remove('open');
+  document.querySelectorAll('.hs-btn').forEach(function(b){ b.classList.remove('active'); });
+}
+document.getElementById('ip-close').addEventListener('click', closeInfo);
+
+/* =========================================================
+   UI WIRING
+   ========================================================= */
+var sidebar = document.getElementById('sidebar');
+var btnLocations = document.getElementById('btn-locations');
+var btnTour = document.getElementById('btn-tour');
+var btnPhases = document.getElementById('btn-phases');
+var btnMotion = document.getElementById('btn-motion');
+var btnW = document.getElementById('btn-wichita');
+var btnD = document.getElementById('btn-dallas');
+
+function populateSidebar(campus) {
+  document.getElementById('sidebar-campus').textContent = campus.sidebarLabel;
+  var list = document.getElementById('hotspot-list');
+  list.innerHTML = '';
+  campus.hotspots.forEach(function(hs, i){
+    var li = document.createElement('li');
+    var btn = document.createElement('button');
+    btn.className = 'hs-btn';
+    btn.innerHTML = '<span class="n">' + (i+1) + '</span><span class="t"></span>';
+    btn.querySelector('.t').textContent = hs.title;
+    btn.addEventListener('click', function(){
+      selectHotspot(i);
+      if (window.innerWidth < 720) toggleSidebar(false);
+    });
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+function toggleSidebar(force) {
+  var open = force !== undefined ? force : !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', open);
+  btnLocations.setAttribute('aria-expanded', String(open));
+  btnLocations.classList.toggle('active', open);
+}
+btnLocations.addEventListener('click', function(){ toggleSidebar(); });
+
+function setPhases(on) {
+  var campus = campuses[activeCampusKey];
+  if (!campus || !campus.phases) return;
+  campus.phases.visible = on;
+  document.getElementById('phase-legend').classList.toggle('open', on);
+  btnPhases.setAttribute('aria-pressed', String(on));
+  btnPhases.classList.toggle('active', on);
+  if (on) liveRegion.textContent = 'Development phases shown. Phase 1 September 30, Phase 2A October 30, Phase 2B November 30, Phase 3 December 31, 2026.';
+}
+btnPhases.addEventListener('click', function(){
+  var campus = campuses[activeCampusKey];
+  if (!campus || !campus.phases) return;
+  setPhases(!campus.phases.visible);
+});
+
+btnMotion.addEventListener('click', function(){
+  motionEnabled = !motionEnabled;
+  btnMotion.setAttribute('aria-pressed', String(motionEnabled));
+  btnMotion.classList.toggle('active', motionEnabled);
+  liveRegion.textContent = motionEnabled ? 'Ambient motion on.' : 'Ambient motion paused.';
+});
+btnMotion.classList.toggle('active', motionEnabled);
+btnMotion.setAttribute('aria-pressed', String(motionEnabled));
+
+function startTour() {
+  var campus = campuses[activeCampusKey];
+  if (!campus) return;
+  tourActive = true; tourIndex = 0; tourTimer = 0;
+  btnTour.classList.add('active'); btnTour.setAttribute('aria-pressed', 'true');
+  selectHotspot(0);
+}
+function stopTour() {
+  if (!tourActive) return;
+  tourActive = false;
+  btnTour.classList.remove('active'); btnTour.setAttribute('aria-pressed', 'false');
+}
+btnTour.addEventListener('click', function(){ tourActive ? stopTour() : startTour(); });
+
+function setCampus(key, fromIntro) {
+  if (activeCampusKey === key) return;
+  lastHotspot = -1; zoomFactor = 0.8;
+  stopTour();
+  closeInfo();
+  document.getElementById('phase-legend').classList.remove('open');
+  if (activeCampusKey) campuses[activeCampusKey].group.visible = false;
+  activeCampusKey = key;
+  var campus = campuses[key];
+  campus.group.visible = true;
+  if (campus.phases) campus.phases.visible = false;
+  btnPhases.style.display = campus.phases ? '' : 'none';
+  btnPhases.classList.remove('active'); btnPhases.setAttribute('aria-pressed', 'false');
+  btnW.classList.toggle('active', key === 'wichita');
+  btnW.setAttribute('aria-pressed', String(key === 'wichita'));
+  btnD.classList.toggle('active', key === 'dallas');
+  btnD.setAttribute('aria-pressed', String(key === 'dallas'));
+  populateSidebar(campus);
+  // reset camera high then sweep in
+  var home = campus.home;
+  ctrl.target.set(home.look[0], home.look[1], home.look[2]);
+  camera.position.set(home.cam[0] * 1.5, home.cam[1] * 2.1, home.cam[2] * 1.5);
+  var offset = camera.position.clone().sub(ctrl.target);
+  ctrl.sphere.setFromVector3(offset);
+  applyCamera();
+  flyTo(home.cam, home.look, fromIntro ? 2.4 : 1.8);
+  liveRegion.textContent = campus.sidebarLabel + ' loaded. ' + campus.hotspots.length + ' locations available in the Locations list.';
+}
+btnW.addEventListener('click', function(){ setCampus('wichita'); });
+btnD.addEventListener('click', function(){ setCampus('dallas'); });
+
+var intro = document.getElementById('intro');
+document.getElementById('card-wichita').addEventListener('click', function(){
+  intro.classList.add('hidden');
+  setCampus('wichita', true);
+});
+document.getElementById('card-dallas').addEventListener('click', function(){
+  intro.classList.add('hidden');
+  setCampus('dallas', true);
+});
+
+/* =========================================================
+   BUILD + ANIMATE
+   ========================================================= */
+campuses.wichita = buildWichita();
+campuses.dallas = buildDallas();
+attachHotspots(campuses.wichita);
+attachHotspots(campuses.dallas);
+
+var hintEl = document.getElementById('hint');
+setTimeout(function(){ hintEl.style.opacity = '0'; }, 14000);
+
+window.addEventListener('resize', function(){
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function syncSidebarTop() {
+  var tb = document.getElementById('topbar');
+  sidebar.style.top = tb.offsetHeight + 'px';
+}
+syncSidebarTop();
+window.addEventListener('resize', syncSidebarTop);
+
+var elapsed = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  var dt = Math.min(clock.getDelta(), 0.06);
+  elapsed += dt;
+  updateFlight(dt);
+  if (activeCampusKey) {
+    var campus = campuses[activeCampusKey];
+    if (motionEnabled) {
+      campus.trucks.forEach(function(t){ t.update(dt); });
+      campus.people.forEach(function(p){ p.update(dt); });
+    }
+    updateDoors(campus.doors, dt);
+    if (campus.flags && motionEnabled) {
+      campus.flags.forEach(function(fl, fi){
+        fl.rotation.y = Math.sin(elapsed * 2.1 + fi * 1.3) * 0.22;
+        fl.rotation.z = Math.sin(elapsed * 3.4 + fi) * 0.05;
+      });
+    }
+    // marker pulse
+    var pulse = 4.4 + Math.sin(elapsed * 2.4) * 0.35;
+    campus.markerSprites.forEach(function(sp){
+      var d = camera.position.distanceTo(sp.position);
+      var s = pulse * Math.max(0.7, Math.min(2.2, d / 90));
+      sp.scale.set(s, s, 1);
+    });
+    // auto tour
+    if (tourActive && !flight) {
+      tourTimer += dt;
+      if (tourTimer > 7) {
+        tourTimer = 0;
+        tourIndex = (tourIndex + 1) % campus.hotspots.length;
+        selectHotspot(tourIndex);
+      }
+    }
+  }
+  renderer.render(scene, camera);
+}
+animate();
+
+document.getElementById('loading').classList.add('hidden');
+
+})();
+</script>
+
+</body>
+</html>
